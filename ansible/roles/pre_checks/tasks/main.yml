@@ -1,31 +1,46 @@
-   - name: Check for content folder
-     raw: ls /mnt/storage/materials/content
-     register: content_exist
-     ignore_errors: True
-
-   - name: Checking existence of content folder
-     fail: msg="This Sandisk does NOT have ANY videos!"
-     when: content_exist.stdout.find('No such file') != -1
-
    - name: Count the number of content videos
      raw: ls -l /mnt/storage/materials/content/*.mp4  | wc -l 
      register: num_content_videos
      ignore_errors: True
+
+   - name: Count the number of content videos in .kalite/content
+     raw: ls -l /mnt/storage/.kalite/content/*.mp4 | wc -l
+     register: kalite_content_videos
+     ignore_errors: True
+
+   - name: Check for content videos
+     fail: msg="This Sandisk only contains {{ kalite_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
+     when: num_content_videos.stdout.find('No such file') == 1 and kalite_content_videos.stdout.find('{{ num_videos }}') == -1
    
-   - name: Check for existense of khan_assessment.zip
-     raw: ls /mnt/storage/materials/khan_assessment.zip
+   - name: Check for content videos #2
+     fail: msg="This Sandisk only contains {{ num_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
+     when: num_content_videos.stdout.find('{{ num_videos}}') == -1 and kalite_content_videos.stdout.find('No such file') == 1
+
+   - name: Check for existence of sdist
+     raw: ls /mnt/storage/materials/{{ kalite_version }}.tar.gz
+     register: sdist_exist
+
+   - name: Check for sdist
+     fail: msg="This Sandisk does NOT contain the sdist file!"
+     when: sdist_exist.stdout.find('No such file') == 1
+
+   - name: Check for existense of database
+     raw: ls /mnt/storage/materials/content_khan_en.sqlite
+     register: check_for_database
+     ignore_errors: True
+
+   - name: Check for database
+     fail: msg="This Sandisk does NOT contain the database file!"
+     when: check_for_database.stdout.find('No such file') == 1
+
+   - name: Check for existense of en.zip
+     raw: ls /mnt/storage/materials/en.zip
      register: check_for_zip
      ignore_errors: True
 
-#   - name: Check videos and zip
-#     fail: msg="This Sandisk only contains {{ num_content_videos.stdout.strip() }}/{{ num_videos }} videos and does NOT contain khan_assessment.zip!"
-#     when: num_content_videos.stdout.find('{{ num_videos }}') == -1 and check_for_zip.stdout.find('No such file') != -1
-#
-#   - name: Check number of videos
-#     fail: msg="This Sandisk only contains {{ num_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
-#     when: num_content_videos.stdout.find('{{ num_videos }}') == -1
+   - name: Check en.zip
+     fail: msg="This Sandisk does NOT contain the en.zip!"
+     when: check_for_zip.stdout.find('No such file') == 1
 
-   - name: Check assessment.zip
-     fail: msg="This Sandisk does NOT contain the khan_assessment.zip!"
-     when: check_for_zip.stdout.find('No such file') != -1
+
 

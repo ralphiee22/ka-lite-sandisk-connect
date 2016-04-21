@@ -63,7 +63,7 @@ class WorkerThread(threading.Thread):
 	self.setup_ssh()
 	# run ansible commands
 	os.chdir('../ansible/')
-	ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts --extra-vars "num_videos=7611 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
+	ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts --extra-vars "num_videos=6460 kalite_version=ka-lite-static-0.16.2 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
 	error = self.execute(ansible_command)
 	# updates tab name
 	if error:

@@ -1,4 +1,4 @@
 [submodule "ka-lite"]
 	path = ka-lite
-	url = git@github.com:learningequality/ka-lite.git
+	url = https://github.com/learningequality/ka-lite.git
 	branch = master

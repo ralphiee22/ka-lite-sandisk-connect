@@ -3,8 +3,7 @@
   gather_facts: no
   
   roles:
-    #- pre_checks
+    - pre_checks
     - python
     - kalite
-    #- demohacks
-    #- system
+    - system
