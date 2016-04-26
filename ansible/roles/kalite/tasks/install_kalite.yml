@@ -22,30 +22,30 @@
   when: content_check.stdout.find('{{ num_videos }}') == -1
 
 - name: Untar ka-lite sdist
-  unarchive: src=/mnt/storage/materials/{{ kalite_version }}.tar.gz dest=/mnt/storage copy=no
+  unarchive: src=/mnt/storage/materials/{{ kalite_version.stdout.strip() }}.tar.gz dest=/mnt/storage copy=no
 
 - name: Installing ka-lite
-  shell: python setup.py install chdir=/mnt/storage/{{ kalite_version }}
+  shell: python setup.py install chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
 
 - name: Creating database directory
   file: path=/mnt/storage/.kalite/database state=directory
 
 - name: change setup.py file
-  lineinfile: dest=/mnt/storage/{{ kalite_version }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items"\)' line="\1pass" backrefs=yes
+  lineinfile: dest=/mnt/storage/{{ kalite_version.stdout.strip() }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items"\)' line="\1pass" backrefs=yes
   with_items:
     - kalite/contentload/management/commands/unpack_assessment_zip.py
     - kalite/distributed/management/commands/setup.py
 
 - name: change retrievecontentpack.py file
-  lineinfile: dest=/mnt/storage/{{ kalite_version }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items", language=lang\)' line="\1pass" backrefs=yes
+  lineinfile: dest=/mnt/storage/{{ kalite_version.stdout.strip() }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items", language=lang\)' line="\1pass" backrefs=yes
   with_items:
     - kalite/distributed/management/commands/retrievecontentpack.py
 
 - name: Setup
-  shell: PYTHONPATH=/mnt/storage/{{ kalite_version }}/dist-packages python kalitectl.py manage setup --noinput --no-assessment-items chdir=/mnt/storage/{{ kalite_version }}
+  shell: PYTHONPATH=/mnt/storage/{{ kalite_version.stdout.strip() }}/dist-packages python kalitectl.py manage setup --noinput --no-assessment-items chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
 
 - name: Unpacking assessment items
-  shell: PYTHONPATH=/mnt/storage/{{ kalite_version }}/dist-packages python kalitectl.py manage retrievecontentpack local en /mnt/storage/materials/en.zip chdir=/mnt/storage/{{ kalite_version }}
+  shell: PYTHONPATH=/mnt/storage/{{ kalite_version.stdout.strip() }}/dist-packages python kalitectl.py manage retrievecontentpack local en /mnt/storage/materials/en.zip chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
 
 - name: Copying over content database
   shell: cp /mnt/storage/materials/content_khan_en.sqlite /mnt/storage/.kalite/database/content_khan_en.sqlite

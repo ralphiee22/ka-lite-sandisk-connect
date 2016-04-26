@@ -1,5 +1,5 @@
 - name: Checking if ka-lite is on the target
-  shell: PYTHONPATH=/mnt/storage/{{ kalite_version }}/dist-packages python /mnt/storage/{{ kalite_version }}/kalitectl.py 
+  shell: PYTHONPATH=/mnt/storage/{{ kalite_version.stdout.strip() }}/dist-packages python /mnt/storage/{{ kalite_version.stdout.strip() }}/kalitectl.py 
   register: kalite_test
   ignore_errors: True
 

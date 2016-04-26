@@ -16,8 +16,12 @@
      fail: msg="This Sandisk only contains {{ num_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
      when: num_content_videos.stdout.find('{{ num_videos}}') == -1 and kalite_content_videos.stdout.find('No such file') == 1
 
+   - name: Check for sdist
+     raw: cd /mnt/storage/materials; ls *.tar.gz | cut -d '.' -f 1-3
+     register: kalite_version
+
    - name: Check for existence of sdist
-     raw: ls /mnt/storage/materials/{{ kalite_version }}.tar.gz
+     raw: ls /mnt/storage/materials/{{ kalite_version.stdout.strip() }}.tar.gz
      register: sdist_exist
 
    - name: Check for sdist
