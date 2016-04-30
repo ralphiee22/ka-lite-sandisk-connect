@@ -10,17 +10,42 @@
 - name: Create symlink for .usrsharekalite directory
   file: src=/mnt/storage/.usrsharekalite dest=/usr/share/kalite state=link
 
-- name: Create symlink for .content directory
-  file: src=/mnt/storage/materials/content dest=/mnt/storage/.kalite/content state=link
+- name: Checking for content directory
+  shell: ls -l /mnt/storage/.kalite/content/*.mp4 | wc -l
+  register: content_check
+  ignore_errors: True
 
-#- name: Copy ka-lite sdist over
-#  copy: src=ka-lite-static-0.16.b2.tar.gz dest=/mnt/storage/
+- name: Moving content directory
+  shell: mv /mnt/storage/materials/content /mnt/storage/.kalite/content
+  args:
+    creates: /mnt/storage/.kalite/content
+  when: content_check.stdout.find('{{ num_videos }}') == -1
 
 - name: Untar ka-lite sdist
-  unarchive: src=/mnt/storage/materials/ka-lite-static-0.16.b2.tar.gz dest=/mnt/storage copy=no
+  unarchive: src=/mnt/storage/materials/{{ kalite_version.stdout.strip() }}.tar.gz dest=/mnt/storage copy=no
 
 - name: Installing ka-lite
-  shell: python setup.py install chdir=/mnt/storage/ka-lite-static-0.16.b2
+  shell: python setup.py install chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
+
+- name: Creating database directory
+  file: path=/mnt/storage/.kalite/database state=directory
+
+- name: change setup.py file
+  lineinfile: dest=/mnt/storage/{{ kalite_version.stdout.strip() }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items"\)' line="\1pass" backrefs=yes
+  with_items:
+    - kalite/contentload/management/commands/unpack_assessment_zip.py
+    - kalite/distributed/management/commands/setup.py
+
+- name: change retrievecontentpack.py file
+  lineinfile: dest=/mnt/storage/{{ kalite_version.stdout.strip() }}/{{ item }} regexp='^(\s*)call_command\("annotate_content_items", language=lang\)' line="\1pass" backrefs=yes
+  with_items:
+    - kalite/distributed/management/commands/retrievecontentpack.py
+
+- name: Setup
+  shell: PYTHONPATH=/mnt/storage/{{ kalite_version.stdout.strip() }}/dist-packages python kalitectl.py manage setup --noinput --no-assessment-items chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
 
 - name: Unpacking assessment items
-  shell: PYTHONPATH=/mnt/storage/ka-lite-static-0.16.b2/dist-packages python kalitectl.py manage unpack_assessment_zip /mnt/storage/materials/khan_assessment.zip chdir=/mnt/storage/ka-lite-static-0.16.b2
+  shell: PYTHONPATH=/mnt/storage/{{ kalite_version.stdout.strip() }}/dist-packages python kalitectl.py manage retrievecontentpack local en /mnt/storage/materials/en.zip chdir=/mnt/storage/{{ kalite_version.stdout.strip() }}
+
+- name: Copying over content database
+  shell: cp /mnt/storage/materials/content_khan_en.sqlite /mnt/storage/.kalite/database/content_khan_en.sqlite
