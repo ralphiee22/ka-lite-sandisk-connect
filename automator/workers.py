@@ -6,6 +6,7 @@ import datetime
 import secrets
 import subprocess
 import os
+import re
 
 from Tkinter import *
 
@@ -18,6 +19,7 @@ class WorkerThread(threading.Thread):
         self.sandisk_id = sandisk_id
         self.ip = "192.168.11.2%.2d" % wipi_id
 	self.text_id = text_id
+	self.text_id.config(wrap=WORD)
 	self.wipi_name = wipi_name
 	self.nb = nb
 	self.tab_id = len(nb.tabs()) - 1
@@ -39,17 +41,43 @@ class WorkerThread(threading.Thread):
 	lines_iterator = iter(popen.stdout.readline, b"")
 	self.text_id.tag_config("text", foreground="black")
 	self.text_id.tag_config("error", foreground="red")
+	self.text_id.tag_config("instr", foreground="blue")
 	error = 0
+	disconnect = 0
+	missing = 0
+	videos = 0
+	pattern = "([0-9]+/6460)"
 	for line in lines_iterator:
 		# if there is an error, display text in red
 		if "error" in line.lower() or "fatal" in line.lower():
 			error = 1
+		if "not contain" in line.lower(): 
+			missing = 1
+		if "connection timed out" in line.lower():
+			disconnect = 1
+		m = re.search(pattern, line.lower())
+		if m:
+			videos = 1
+			video_counts = m.group(0)
 		if error:
 			self.text_id.insert(END, line, "error")
 		else:
 			self.text_id.insert(END, line, "text")
 		self.text_id.see(END)
 	self.log("Worker completed!")
+	self.text_id.config(state=NORMAL)
+	# action messages to be printed out depending on failure
+	if disconnect:
+		self.text_id.insert(END, "\n(COURSE OF ACTION) Sandisk has disconnected. Please close tab, and either plug Sandisk into power if it has turned off, or turn Sandisk off and on again.", "instr")
+	elif missing:
+		self.text_id.insert(END, "\n(COURSE OF ACTION) There are files missing in the materials folder. Please take this Sandisk back to STATION 1 to get all necessary files in the materials folder.", "instr")
+	elif videos:
+		self.text_id.insert(END, "\n(COURSE OF ACTION) There are videos missing! There are only %s videos on this Sandisk. Please take this Sandisk back to STATION 1 to get all necessary videos, as well as any files that may be missing in the materials folder." % video_counts, "instr")
+	elif error:
+		self.text_id.insert(END, "\n(COURSE OF ACTION) Something went wrong! Try restarting the Sandisk, and re-initiating the configuration process.", "instr")
+	else:
+		self.text_id.insert(END, "\nINSTALLATION SUCCESSFUL. Please remove Sandisk %s and close the tab. Please grab another Sandisk and begin the configuration." % self.sandisk_id, "instr")
+	self.text_id.see(END)
 	self.text_id.config(state=DISABLED)
 	return error
 
@@ -63,7 +91,7 @@ class WorkerThread(threading.Thread):
 	self.setup_ssh()
 	# run ansible commands
 	os.chdir('../ansible/')
-	ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vvvv -i hosts --extra-vars "num_videos=7611 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
+	ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts --extra-vars "num_videos=6460 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
 	error = self.execute(ansible_command)
 	# updates tab name
 	if error:
