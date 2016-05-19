@@ -56,11 +56,17 @@ class Application(Frame):
 		sandisk_list = get_server_list(wipi_list)
 
 		# remove wipis and sandisks in use
-		for worker in WorkerThread.get_active():
-			if worker.sandisk_id in sandisk_list:
-				sandisk_list.remove(worker.sandisk_id)
-			if worker.wipi_name in wipi_list: 
-				wipi_list.remove(worker.wipi_name)
+		#for worker in WorkerThread.get_active():
+		#	if worker.sandisk_id in sandisk_list:
+		#		sandisk_list.remove(worker.sandisk_id)
+		#	if worker.wipi_name in wipi_list: 
+		#		wipi_list.remove(worker.wipi_name)
+
+		for th in self.thread_list:
+			if th.sandisk_id in sandisk_list:
+				sandisk_list.remove(th.sandisk_id)
+			if th.wipi_name in wipi_list:
+				wipi_list.remove(th.wipi_name)
 		
 		self.available_wipis = len(wipi_list)
 
@@ -99,19 +105,20 @@ class Application(Frame):
 		
 		# add button to page
 		button = Button(page, text='Close Tab')
-		button.config(command=lambda: self.closeTab(page, thread, output_text, button))
+		button.config(command=lambda: self.closeTab(page, thread, output_text, button, sandisk_id))
 		button.pack(side=LEFT)
 		
 		#Start the thread
+		thread.daemon = True
 		thread.start()
 
-    def closeTab(self, tab, th, output_text, button):
+    def closeTab(self, tab, th, output_text, button, sandisk_id):
 	# prevent user from closing tab if thread is active
-	if th.isAlive():
-		tkMessageBox.showerror('Closing Tab Error', 'Process is still running.\n Please wait for it to finish.')
-		return
+	#if th.isAlive():
+	#	tkMessageBox.showerror('Closing Tab Error', 'Process is still running.\n Please wait for it to finish.')
+	#	return
 	# close tab on user request
-	result = tkMessageBox.askyesno('Close Tab Confirmation', 'Are you sure want to close the current tab?')
+	result = tkMessageBox.askyesno('Close Tab Confirmation', 'Are you sure ABSOLUTELY SURE you want to close tab %s?' % sandisk_id)
 	if result:
 		# update tab ids for each thread
 		index = self.thread_list.index(th)
@@ -163,12 +170,14 @@ class Application(Frame):
 	self.default_text.config(state=DISABLED)
 
     def checkThreads(self):
-	workers = WorkerThread.get_active()
+	#workers = WorkerThread.get_active()
 	# do not allow user to close program if there are still active threads
-	if len(workers) != 0:
-		tkMessageBox.showerror('Closing Window Error', 'Processes are still running.\n Please wait for them to finish.')
-		#close = tkMessageBox.askyesno('Close Window', 'Are you absolutely sure you want to close the window? Sandisks are still being configured and disconnecting will cause them not to be configured properly!!')
-		return
+	#if len(workers) != 0:
+	if len(self.thread_list) != 0:
+		#tkMessageBox.showerror('Closing Window Error', 'Processes are still running.\n Please wait for them to finish or close all tabs.')
+		close = tkMessageBox.askyesno('Close Window', 'There are tabs still open. Are you ABSOLUTELY sure you want to close the window and stop any running processes?')
+		if not close:
+			return
 	self.master.destroy()
 	
     def __init__(self, master=None):
