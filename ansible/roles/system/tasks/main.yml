@@ -1,11 +1,8 @@
 - name: Copy over dnsd file
   copy: src=dnsd dest=/etc/init.d/service/dnsd
 
-- name: Update dnsd file
-  replace: dest=/etc/init.d/service/dnsd regexp=overwrite replace={{ kalite_version.stdout.strip() }}
-
 - name: Copy over S90kalite file
-  copy: src=S90kalite dest=/etc/init.d/service/S90kalite mode="0755"
+  template: src=S90kalite dest=/etc/init.d/service/S90kalite mode="0755"
 
 - name: Make scripts directory
   file: path=/root/scripts state=directory

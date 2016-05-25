@@ -10,7 +10,7 @@
 
    - name: Failure check for content videos
      fail: msg="This Sandisk only contains {{ kalite_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
-     when: num_content_videos.stdout.find('No such file') != 1 and kalite_content_videos.stdout.find('{{ num_videos }}') == -1
+     when: num_content_videos.stdout.find('No such file') != -1 and kalite_content_videos.stdout.find('{{ num_videos }}') == -1
    
    - name: Check for content videos #2
      fail: msg="This Sandisk only contains {{ num_content_videos.stdout.strip() }}/{{ num_videos }} videos!"
