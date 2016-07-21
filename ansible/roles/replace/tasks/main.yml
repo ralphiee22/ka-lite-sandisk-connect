@@ -1,0 +1,7 @@
+- name: remove old kalite
+  raw: rm /mnt/storage/materials/ka-lite-static-0.16.5.tar.gz
+  ignore_errors: True
+
+- name: put latest kalite
+  local_action: command ../put_latest_kalite.sh {{ ansible_ssh_host }} {{ ansible_ssh_pass }}
+  sudo: yes

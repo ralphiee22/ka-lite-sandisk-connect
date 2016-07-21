@@ -3,6 +3,13 @@
   register: kalite_test
   ignore_errors: True
 
+- name: Checking if content database is in correct place
+  raw: ls /mnt/storage/.kalite/database/content_khan_en.sqlite
+  register: content_database_test
+  ignore_errors: True
+
+- debug: var=kalite_test
+- debug: var=content_database_test
 - name: Installing ka-lite
   include: install_kalite.yml
-  when: hostvars.sandisk.kalite_test.stderr.find('Usage') == -1
+  when: (kalite_test.stderr.find('Usage') == -1) or (content_database_test.stdout.find('No such file') != -1)

@@ -1,5 +1,23 @@
+   - name: Stat kalite old path
+     raw: ls /mnt/storage/materials/ka-lite-static-0.16.5.tar.gz
+     register: old_path
+     ignore_errors: True
+
+   - name: Stat kalite new path
+     raw: ls /mnt/storage/materials/ka-lite-static-0.16.7b2.tar.gz
+     register: new_path
+     ignore_errors: True
+
+   - name: check old path does not exist
+     fail: msg="Old kalite.tar.gz must be removed. Please re-run the process."
+     when: old_path.stdout.find('No such file') == -1
+
+   - name: check new path does exist
+     fail: msg="New kalite.tar.gz must be present. Please re-run the process."
+     when: new_path.stdout.find('No such file') != -1
+
    - name: Count the number of content videos
-     raw: ls -l /mnt/storage/materials/content/*.mp4  | wc -l 
+     raw: ls -l /mnt/storage/materials/content/*.mp4 | wc -l 
      register: num_content_videos
      ignore_errors: True
 

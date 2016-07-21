@@ -3,6 +3,8 @@
   gather_facts: no
   
   roles:
+    # - clean
+    - replace
     - pre_checks
     - python
     - kalite
