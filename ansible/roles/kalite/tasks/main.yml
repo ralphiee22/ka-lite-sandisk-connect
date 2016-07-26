@@ -8,8 +8,15 @@
   register: content_database_test
   ignore_errors: True
 
-- debug: var=kalite_test
+- name: Checking for assessment items
+  raw: du -sh /mnt/storage/.kalite/content/assessment/khan/
+  register: assessment_test
+  ignore_errors: True
+
 - debug: var=content_database_test
+- debug: var=assessment_test
+
 - name: Installing ka-lite
   include: install_kalite.yml
-  when: (kalite_test.stderr.find('Usage') == -1) or (content_database_test.stdout.find('No such file') != -1)
+  when: (content_database_test.stdout.find('No such file') != -1) or
+        (assessment_test.stdout.find('6.5G') == -1)

@@ -14,6 +14,6 @@ put setuptools-18.4.tar.gz
 quit
 END_SCRIPT
 
-../scripts/_install_python.sh $PASSWD
+../scripts/_install_python.sh $HOST $PASSWD
 
 cd ../ansible/

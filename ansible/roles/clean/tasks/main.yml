@@ -1,18 +1,28 @@
 - name: Check for sdist tar file
   raw: cd /mnt/storage/materials; ls *.tar.gz | cut -d '.' -f 1-3
   register: remove_version
+  ignore_errors: True
 
 - name: remove assessment items
   raw: rm -r /mnt/storage/.kalite/content/assessment
+  ignore_errors: True
 
 - name: moving videos back
   raw: mv /mnt/storage/.kalite/content /mnt/storage/materials/content
+  ignore_errors: True
 
 - name: removing hidden folders
   raw: rm -r /mnt/storage/.kalite /mnt/storage/.usrsharekalite
+  ignore_errors: True
 
 - name: remove folder and tar.gz
   raw: rm -r /mnt/storage/materials/{{ remove_version.stdout.strip() }}.tar.gz /mnt/storage/{{ remove_version.stdout.strip() }}
+  ignore_errors: True
 
 - name: remove scripts directory
   raw: rm -r scripts
+  ignore_errors: True
+
+- name: remove python and setuptools
+  raw: rm -r /mnt/storage/python /mnt/storage/python.zip /mnt/storage/setuptools-18.4 /mnt/storage/setuptools-18.4.tar.gz
+  ignore_errors: True

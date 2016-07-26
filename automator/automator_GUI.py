@@ -135,6 +135,7 @@ class Application(Frame):
 		else:
 			tab.destroy()
 			self.wifi.set("%s/%s wifi adapters available" % (self.total_wipis - len(self.nb.tabs()), self.total_wipis))
+		subprocess.call(["nmcli", "d", "disconnect", "iface", th.wipi_name])
 		button.destroy()
 
     def createWidgets(self):
@@ -178,6 +179,9 @@ class Application(Frame):
 		close = tkMessageBox.askyesno('Close Window', 'There are tabs still open. Are you ABSOLUTELY sure you want to close the window and stop any running processes?')
 		if not close:
 			return
+	for th in self.thread_list:
+		subprocess.call(["nmcli", "d", "disconnect", "iface", th.wipi_name])
+	subprocess.call("ps aux | grep ansible | awk '{print $2}' | xargs kill", shell=True)
 	self.master.destroy()
 	
     def __init__(self, master=None):

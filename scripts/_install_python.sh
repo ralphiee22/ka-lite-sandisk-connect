@@ -1,8 +1,8 @@
 #!/usr/bin/expect
 set timeout 20
-set HOST 192.168.11.1
+set HOST [lindex $argv 0]
 set USER root
-set PASSWD [lindex $argv 0]
+set PASSWD [lindex $argv 1]
 
 spawn telnet $HOST
 

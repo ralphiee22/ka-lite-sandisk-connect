@@ -3,7 +3,28 @@
   register: python_test
   ignore_errors: True
 
+- raw: PYTHONHOME=/usr/ python -c "import pkg_resources"
+  register: pkg_resources_test
+  ignore_errors: True
+
+- raw: PYTHONHOME=/usr/ python -c "import setuptools"
+  register: setuptools_test
+  ignore_errors: True
+
+# - debug: var=python_test
+# - debug: var=pkg_resources_test
+# - debug: var=setuptools_test
+
+- name: remove python and setuptools
+  raw: rm -r /mnt/storage/python /mnt/storage/python.zip /mnt/storage/setuptools-18.4 /mnt/storage/setuptools-18.4.tar.gz
+  when: (pkg_resources_test.rc == 1) or
+        (setuptools_test.rc == 1) or 
+        (python_test.failed is defined)
+  ignore_errors: True
+
 - name: Installing python
   include: install_python.yml
-  when: hostvars.sandisk.python_test.failed is defined
+  when: (python_test.failed is defined) or
+        (pkg_resources_test.rc == 1) or
+        (setuptools_test.rc == 1)
   

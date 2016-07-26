@@ -79,10 +79,13 @@ class WorkerThread(threading.Thread):
 		self.text_id.insert(END, "\nINSTALLATION SUCCESSFUL. Please remove Sandisk %s and close the tab. Please grab another Sandisk and begin the configuration." % self.sandisk_id, "instr")
 	self.text_id.see(END)
 	self.text_id.config(state=DISABLED)
+	popen.kill()
 	return error
 
     def setup_ssh(self):
-	subprocess.call(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
+	return_status = subprocess.call(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
+	self.log(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
+	self.log(return_status)
 	
     def run(self):
         self.log("Starting worker...")
@@ -101,8 +104,12 @@ class WorkerThread(threading.Thread):
         self.cleanup()
 
     def cleanup(self):
-        subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name])
-        subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+        return_status = subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name])
+        self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
+        self.log(return_status)
+        return_status = subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+        self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+        self.log(return_status)
 
     @classmethod
     def get_active(cls):
@@ -110,27 +117,45 @@ class WorkerThread(threading.Thread):
 
     def connect_server_to_wipi(self):
         self.log("Connecting WiPi to server")
-        subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name]) #catch errors
-        subprocess.call(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
+        return_status = subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name]) #catch errors
+        self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
+        self.log(return_status)
+        return_status = subprocess.call(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
+        while return_status == 4:
+            self.log("Trying to connect again")
+            time.sleep(5)
+            return_status = subprocess.call(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
+        self.log(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
+        self.log(return_status)
 
     def add_IP_route(self):
         self.log("Attempting to add IP route")
         with routing_table_lock:
             self.log("Lock ACQUIRED")
             self.log("Configuring routing table and SanDisk IP ")
-            subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])#catch errors
+            return_status = subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])#catch errors
+            self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+            self.log(return_status)
             #pair the "default IP" with a particular WiPi on controller routing table
             self.log("A")
-            subprocess.call(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
+            return_status = subprocess.call(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
+            self.log(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
+            self.log(return_status)
             #add a unique IP address so that the WiPi can access it
             self.log("B")
-            subprocess.call(["../scripts/_set_sandisk_ip.sh", secrets.SANDISK_ROOT_PASSWORD, self.ip])
+            return_status = subprocess.call(["../scripts/_set_sandisk_ip.sh", secrets.SANDISK_ROOT_PASSWORD, self.ip])
+            self.log(["../scripts/_set_sandisk_ip.sh", secrets.SANDISK_ROOT_PASSWORD, self.ip])
+            self.log(return_status)
             #remove the "default IP" and WiPi pairing from routing table
             self.log("C")
-            subprocess.call(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
+            return_status = subprocess.call(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
+            self.log(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
+            self.log(return_status)
             #Add the unique IP address of the SanDisk server to the controller routing table
             self.log("D")
             subprocess.call(["sudo", "ip", "route", "add", "%s/32" % self.ip, "dev", self.wipi_name])
+            self.log(["sudo", "ip", "route", "add", "%s/32" % self.ip, "dev", self.wipi_name])
+            self.log(return_status)
             self.log("Lock RELEASING")
 
 if __name__ == "__main__":
