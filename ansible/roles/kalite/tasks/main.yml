@@ -13,8 +13,8 @@
   register: assessment_test
   ignore_errors: True
 
-- debug: var=content_database_test
-- debug: var=assessment_test
+# - debug: var=content_database_test
+# - debug: var=assessment_test
 
 - name: Installing ka-lite
   include: install_kalite.yml

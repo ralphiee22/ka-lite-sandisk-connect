@@ -2,8 +2,8 @@
 set timeout 20
 set HOST 192.168.11.1
 set USER root
-set PASSWD [lindex $argv 0]
-set WIPI_IP [lindex $argv 1]
+set PASSWD [lindex $argv 1]
+set WIPI_IP [lindex $argv 0]
 
 spawn telnet $HOST
 

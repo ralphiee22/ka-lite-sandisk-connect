@@ -37,8 +37,8 @@ class WorkerThread(threading.Thread):
 	self.text_id.config(state=NORMAL)
         env = {'PYTHONUNBUFFERED': 'True'}
         env.update(os.environ)
-	popen = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True, env=env)
-	lines_iterator = iter(popen.stdout.readline, b"")
+	self.popen = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True, env=env)
+	lines_iterator = iter(self.popen.stdout.readline, b"")
 	self.text_id.tag_config("text", foreground="black")
 	self.text_id.tag_config("error", foreground="red")
 	self.text_id.tag_config("instr", foreground="blue")
@@ -55,6 +55,8 @@ class WorkerThread(threading.Thread):
 			missing = 1
 		if "connection timed out" in line.lower():
 			disconnect = 1
+		if "importerror" in line.lower():
+			error = 0
 		m = re.search(pattern, line.lower())
 		if m:
 			videos = 1
@@ -79,37 +81,36 @@ class WorkerThread(threading.Thread):
 		self.text_id.insert(END, "\nINSTALLATION SUCCESSFUL. Please remove Sandisk %s and close the tab. Please grab another Sandisk and begin the configuration." % self.sandisk_id, "instr")
 	self.text_id.see(END)
 	self.text_id.config(state=DISABLED)
-	popen.kill()
 	return error
 
     def setup_ssh(self):
 	return_status = subprocess.call(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
-	self.log(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
-	self.log(return_status)
+	# self.log(['../scripts/_setup_ssh.sh', self.ip, secrets.SANDISK_ROOT_PASSWORD])
+	# self.log(return_status)
 	
     def run(self):
         self.log("Starting worker...")
         self.connect_server_to_wipi()
         self.add_IP_route()
-	self.setup_ssh()
-	# run ansible commands
-	os.chdir('../ansible/')
-	ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts --extra-vars "num_videos=6460 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
-	error = self.execute(ansible_command)
-	# updates tab name
-	if error:
-		self.nb.tab(self.tab_id, text=("%s (ERROR!)" % self.sandisk_id))
-	else:
-		self.nb.tab(self.tab_id, text=("%s (DONE!)" % self.sandisk_id))
-        self.cleanup()
+        self.setup_ssh()
+        # run ansible commands
+        os.chdir('../ansible/')
+        ansible_command = 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts --extra-vars "num_videos=6460 ansible_ssh_host=%s ansible_ssh_pass=%s" full_setup.yml' % (self.ip, secrets.SANDISK_ROOT_PASSWORD)
+        error = self.execute(ansible_command)
+        # updates tab name
+        if error:
+        	self.nb.tab(self.tab_id, text=("%s (ERROR!)" % self.sandisk_id))
+        else:
+        	self.nb.tab(self.tab_id, text=("%s (DONE!)" % self.sandisk_id))
+        	self.cleanup()
 
     def cleanup(self):
         return_status = subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name])
-        self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
-        self.log(return_status)
+        # self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
+        # self.log(return_status)
         return_status = subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
-        self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
-        self.log(return_status)
+        # self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+        # self.log(return_status)
 
     @classmethod
     def get_active(cls):
@@ -118,15 +119,11 @@ class WorkerThread(threading.Thread):
     def connect_server_to_wipi(self):
         self.log("Connecting WiPi to server")
         return_status = subprocess.call(["nmcli", "d", "disconnect", "iface", self.wipi_name]) #catch errors
-        self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
-        self.log(return_status)
+        # self.log(["nmcli", "d", "disconnect", "iface", self.wipi_name])
+        # self.log(return_status)
         return_status = subprocess.call(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
-        while return_status == 4:
-            self.log("Trying to connect again")
-            time.sleep(5)
-            return_status = subprocess.call(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
-        self.log(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
-        self.log(return_status)
+        # self.log(["nmcli", "d", "wifi", "connect", "SanDisk Media %s" % self.sandisk_id, "iface", self.wipi_name])
+        # self.log(return_status)
 
     def add_IP_route(self):
         self.log("Attempting to add IP route")
@@ -134,28 +131,28 @@ class WorkerThread(threading.Thread):
             self.log("Lock ACQUIRED")
             self.log("Configuring routing table and SanDisk IP ")
             return_status = subprocess.call(["sudo", "ip", "route", "delete", "%s/32" % self.ip])#catch errors
-            self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
-            self.log(return_status)
+            # self.log(["sudo", "ip", "route", "delete", "%s/32" % self.ip])
+            # self.log(return_status)
             #pair the "default IP" with a particular WiPi on controller routing table
             self.log("A")
             return_status = subprocess.call(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
-            self.log(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
-            self.log(return_status)
+            # self.log(["sudo", "ip", "route", "add", "192.168.11.1/32", "dev", self.wipi_name])
+            # self.log(return_status)
             #add a unique IP address so that the WiPi can access it
             self.log("B")
-            return_status = subprocess.call(["../scripts/_set_sandisk_ip.sh", secrets.SANDISK_ROOT_PASSWORD, self.ip])
-            self.log(["../scripts/_set_sandisk_ip.sh", secrets.SANDISK_ROOT_PASSWORD, self.ip])
-            self.log(return_status)
+            return_status = subprocess.call(["../scripts/_set_sandisk_ip.sh", self.ip, secrets.SANDISK_ROOT_PASSWORD])
+            # self.log(["../scripts/_set_sandisk_ip.sh", self.ip, secrets.SANDISK_ROOT_PASSWORD])
+            # self.log(return_status)
             #remove the "default IP" and WiPi pairing from routing table
             self.log("C")
             return_status = subprocess.call(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
-            self.log(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
-            self.log(return_status)
+            # self.log(["sudo", "ip", "route", "delete", "192.168.11.1/32", "dev", self.wipi_name])
+            # self.log(return_status)
             #Add the unique IP address of the SanDisk server to the controller routing table
             self.log("D")
             subprocess.call(["sudo", "ip", "route", "add", "%s/32" % self.ip, "dev", self.wipi_name])
-            self.log(["sudo", "ip", "route", "add", "%s/32" % self.ip, "dev", self.wipi_name])
-            self.log(return_status)
+            # self.log(["sudo", "ip", "route", "add", "%s/32" % self.ip, "dev", self.wipi_name])
+            # self.log(return_status)
             self.log("Lock RELEASING")
 
 if __name__ == "__main__":

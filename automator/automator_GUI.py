@@ -52,6 +52,7 @@ class Application(Frame):
 		
 		# find available sandisks and available wipis
 		wipi_list = get_wipi_list()
+		[wipi_list.remove(wipi) for wipi in self.dead_wipis]
 		self.total_wipis = len(wipi_list)
 		sandisk_list = get_server_list(wipi_list)
 
@@ -90,7 +91,32 @@ class Application(Frame):
 			return
 
 		# choose random wipi and assign id
-		wipi_name = random.choice(wipi_list)	
+		access_points = 1
+		found = 0
+		while access_points == 1 or found == 0:
+			if len(wipi_list) == 0:
+				tkMessageBox.showerror("Wifi Adapter Unavailable", "There are no available wifi adapters. \nIt seems that some wifi adapters have lost connections. \nI would suggest waiting until the current running configurations are done, and then try resetting the wifi adapters.")
+				nb.forget(tab_id)
+				self.wifi.set("%s/%s wifi adapters available" % (self.total_wipis - len(nb.tabs()), self.total_wipis))
+				self.SSID_submit.config(state=NORMAL)
+				return
+			
+			wipi_name = random.choice(wipi_list)
+			nmcli = subprocess.Popen("nmcli d wifi list iface %s | wc -l" % wipi_name, stdout=subprocess.PIPE, shell=True)
+			access_points = nmcli.communicate()[0]
+			sandisks = subprocess.Popen("nmcli d wifi list iface %s | grep SanDisk | awk '{print $3}'" % wipi_name, stdout=subprocess.PIPE, shell=True)
+			sandisks = sandisks.communicate()[0]
+			if int(access_points) is 1:
+				self.dead_wipis.append(wipi_name)
+				self.total_wipis = self.total_wipis - 1
+				wipi_list.remove(wipi_name)
+			elif sandisk_id in sandisks:
+				print "FOUND"
+				found = 1
+			else:
+				wipi_list.remove(wipi_name)
+				print "DOESNT LIST ALL SANDISKS"
+
 		if wipi_name not in self.wipi_dict:
 			self.wipi_dict[wipi_name] = len(self.wipi_dict) + 1
 		
@@ -135,6 +161,7 @@ class Application(Frame):
 		else:
 			tab.destroy()
 			self.wifi.set("%s/%s wifi adapters available" % (self.total_wipis - len(self.nb.tabs()), self.total_wipis))
+		th.popen.kill()
 		subprocess.call(["nmcli", "d", "disconnect", "iface", th.wipi_name])
 		button.destroy()
 
@@ -191,7 +218,9 @@ class Application(Frame):
 	master.rowconfigure(1, weight=1)
         self.createWidgets()
 	self.wipi_dict = dict()
-	self.thread_list = list()
+	self.thread_list = list()	
+	self.dead_wipis = list()
+
 
 root = Tk()
 root.option_add("*Font", "TkDefaultFont")

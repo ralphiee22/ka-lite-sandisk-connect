@@ -5,3 +5,6 @@
 - name: put latest kalite
   local_action: command ../put_latest_kalite.sh {{ ansible_ssh_host }} {{ ansible_ssh_pass }}
   sudo: yes
+  register: put_kalite
+
+# - debug: var=put_kalizte

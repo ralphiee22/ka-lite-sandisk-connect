@@ -1,9 +1,9 @@
 #!/usr/bin/expect
 set USER root
-set IP [lindex $argv 0]
+set HOST [lindex $argv 0]
 set PASSWD [lindex $argv 1]
 
-spawn telnet $IP
+spawn telnet $HOST
 
 expect "Media_Drive login:"
 send "$USER\r"
