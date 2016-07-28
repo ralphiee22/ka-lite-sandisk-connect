@@ -103,7 +103,7 @@ class Application(Frame):
 			sandisks = sandisks.communicate()[0]
 			bad_wipi = 0
 			if (sandisk_id not in sandisks):
-				subprocess.Popen("sudo iwlist %s scanning" % wipi_name)
+				subprocess.Popen("sudo iwlist %s scanning" % wipi_name, shell=True)
 				bad_wipi = 1
 			if counter == 0:
 				tkMessageBox.showerror("SSID Unavailable", "Unable to connect to SanDisk %s with the wifi adapters. Please try again." % sandisk_id)
