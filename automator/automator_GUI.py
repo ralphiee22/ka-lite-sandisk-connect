@@ -106,7 +106,7 @@ class Application(Frame):
 				subprocess.Popen("sudo iwlist %s scanning" % wipi_name, shell=True)
 				bad_wipi = 1
 			if counter == 0:
-				tkMessageBox.showerror("SSID Unavailable", "Unable to connect to SanDisk %s with the wifi adapters. Please try again." % sandisk_id)
+				tkMessageBox.showerror("SSID Unavailable", "Unable to connect to SanDisk %s with the wifi adapters. Please try again in 15 seconds." % sandisk_id)
 				if len(nb.tabs()) == 1:
 					nb.tab(0, text='Waiting for input')
 				else:
