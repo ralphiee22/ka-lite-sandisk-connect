@@ -16,7 +16,7 @@ from wifi import get_wipi_list, get_server_list
 
 class Application(Frame):
 
-    def submit(self, sandisk_id, nb):
+    def submit(self, sandisk_id, nb, retry=0):
 	# if string does not meet requirements, display error and correct syntax
 	if not re.match("^[A-Za-z0-9]{4}$", sandisk_id):
 		tkMessageBox.showinfo("SSID Invalid Syntax", "Please enter inputs with format 'abc1' or 'ABC1'.\nLetters and numbers only.")
@@ -31,7 +31,10 @@ class Application(Frame):
 		if sandisk_id == nb.tab(x)['text'].split()[0]:
 			tkMessageBox.showerror("SSID Already In Use", "There is already a tab open for Sandisk ID: %s.\nPlease close the tab or try a different ID." % sandisk_id)
 			return
-        result = tkMessageBox.askyesno("SSID Confirmation", "Is SSID %s correct?" % sandisk_id)
+	if retry:
+		result = 1
+        else:
+		result = tkMessageBox.askyesno("SSID Confirmation", "Is SSID %s correct?" % sandisk_id)
 	if result:
 		self.SSID_entry.delete(0, END)
 		# use default notebook page or create new one
@@ -91,31 +94,25 @@ class Application(Frame):
 			return
 
 		# choose random wipi and assign id
-		access_points = 1
-		found = 0
-		while access_points == 1 or found == 0:
-			if len(wipi_list) == 0:
-				tkMessageBox.showerror("Wifi Adapter Unavailable", "There are no available wifi adapters. \nIt seems that some wifi adapters have lost connections. \nI would suggest waiting until the current running configurations are done, and then try resetting the wifi adapters.")
-				nb.forget(tab_id)
-				self.wifi.set("%s/%s wifi adapters available" % (self.total_wipis - len(nb.tabs()), self.total_wipis))
-				self.SSID_submit.config(state=NORMAL)
-				return
-			
+		bad_wipi = 1
+		counter = 10
+		while bad_wipi:
+			counter -= 1
 			wipi_name = random.choice(wipi_list)
-			nmcli = subprocess.Popen("nmcli d wifi list iface %s | wc -l" % wipi_name, stdout=subprocess.PIPE, shell=True)
-			access_points = nmcli.communicate()[0]
 			sandisks = subprocess.Popen("nmcli d wifi list iface %s | grep SanDisk | awk '{print $3}'" % wipi_name, stdout=subprocess.PIPE, shell=True)
 			sandisks = sandisks.communicate()[0]
-			if int(access_points) is 1:
-				self.dead_wipis.append(wipi_name)
-				self.total_wipis = self.total_wipis - 1
-				wipi_list.remove(wipi_name)
-			elif sandisk_id in sandisks:
-				print "FOUND"
-				found = 1
-			else:
-				wipi_list.remove(wipi_name)
-				print "DOESNT LIST ALL SANDISKS"
+			bad_wipi = 0
+			if (sandisk_id not in sandisks):
+				subprocess.Popen("sudo iwlist %s scanning" % wipi_name)
+				bad_wipi = 1
+			if counter == 0:
+				tkMessageBox.showerror("SSID Unavailable", "Unable to connect to SanDisk %s with the wifi adapters. Please try again." % sandisk_id)
+				if len(nb.tabs()) == 1:
+					nb.tab(0, text='Waiting for input')
+				else:
+					nb.forget(tab_id)
+				self.SSID_submit.config(state=NORMAL)
+				return
 
 		if wipi_name not in self.wipi_dict:
 			self.wipi_dict[wipi_name] = len(self.wipi_dict) + 1
@@ -123,28 +120,34 @@ class Application(Frame):
 		# update tab name
 		nb.tab(tab_id, text=sandisk_id)		
 
+		# add button to page
+		close_button = Button(page, text='Close Tab')
+		retry_button = Button(page, text='Retry')
+		close_button.config(command=lambda: self.closeTab(page, thread, output_text, close_button, sandisk_id, retry_button))
+		retry_button.config(command=lambda: self.retryTab(page, thread, output_text, close_button, sandisk_id, nb, retry_button))
+		close_button.pack(side=LEFT)
+
 		#Create worker thread with this wifi, sandisk pair
-		thread = WorkerThread(wipi_name, sandisk_id, output_text, self.wipi_dict[wipi_name], nb)
+		thread = WorkerThread(wipi_name, sandisk_id, output_text, self.wipi_dict[wipi_name], nb, retry_button)
 		self.thread_list.append(thread)
 		self.wifi.set("%s/%s wifi adapters available" % (self.total_wipis - len(nb.tabs()), self.total_wipis))
 		self.SSID_submit.config(state=NORMAL)
-		
-		# add button to page
-		button = Button(page, text='Close Tab')
-		button.config(command=lambda: self.closeTab(page, thread, output_text, button, sandisk_id))
-		button.pack(side=LEFT)
 		
 		#Start the thread
 		thread.daemon = True
 		thread.start()
 
-    def closeTab(self, tab, th, output_text, button, sandisk_id):
-	# prevent user from closing tab if thread is active
-	#if th.isAlive():
-	#	tkMessageBox.showerror('Closing Tab Error', 'Process is still running.\n Please wait for it to finish.')
-	#	return
+    def retryTab(self, page, thread, output_text, close_button, sandisk_id, nb, retry_button):
+	self.closeTab(page, thread, output_text, close_button, sandisk_id, retry_button, retry=1)
+	time.sleep(1)
+    	self.submit(sandisk_id, nb, retry=1)
+
+    def closeTab(self, tab, th, output_text, button, sandisk_id, retry_button, retry=0):
 	# close tab on user request
-	result = tkMessageBox.askyesno('Close Tab Confirmation', 'Are you sure ABSOLUTELY SURE you want to close tab %s?' % sandisk_id)
+	if retry:
+		result = 1
+	else:
+		result = tkMessageBox.askyesno('Close Tab Confirmation', 'Are you sure ABSOLUTELY SURE you want to close tab %s?' % sandisk_id)
 	if result:
 		# update tab ids for each thread
 		index = self.thread_list.index(th)
@@ -164,6 +167,7 @@ class Application(Frame):
 		th.popen.kill()
 		subprocess.call(["nmcli", "d", "disconnect", "iface", th.wipi_name])
 		button.destroy()
+		retry_button.destroy()
 
     def createWidgets(self):
 	# SSID label widget

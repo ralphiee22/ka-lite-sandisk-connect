@@ -14,7 +14,7 @@ routing_table_lock = threading.Lock()
 
 class WorkerThread(threading.Thread):
     
-    def __init__(self, wipi_name, sandisk_id, text_id, wipi_id, nb):
+    def __init__(self, wipi_name, sandisk_id, text_id, wipi_id, nb, retry_button):
         threading.Thread.__init__(self)
         self.sandisk_id = sandisk_id
         self.ip = "192.168.11.2%.2d" % wipi_id
@@ -23,6 +23,7 @@ class WorkerThread(threading.Thread):
 	self.wipi_name = wipi_name
 	self.nb = nb
 	self.tab_id = len(nb.tabs()) - 1
+	self.retry_button = retry_button
 
     def log(self, message):
 	# log messages to the text screen of tab
@@ -100,6 +101,7 @@ class WorkerThread(threading.Thread):
         # updates tab name
         if error:
         	self.nb.tab(self.tab_id, text=("%s (ERROR!)" % self.sandisk_id))
+		self.retry_button.pack(side=LEFT)
         else:
         	self.nb.tab(self.tab_id, text=("%s (DONE!)" % self.sandisk_id))
         	self.cleanup()
